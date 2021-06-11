@@ -14,12 +14,16 @@ render :: GameState -> IO Picture
 render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                 ] ++
                                   fmap (convertToPicture white) starShip ++ 
+                                  fmap (convertToPicture green) monster ++ 
                                   pointsPicture++
                                   lifesPicture++
+                                  recordPicture++
                                   gameOverPicture)
     where   starShip = getStarShip gameState 
+            monster = getMonster gameState
             point = getPoints gameState   
             life = getLifes gameState
+            record=getRecord gameState 
             convertToPicture :: Color -> (Int, Int) -> Picture
             convertToPicture color' (x, y) = fillRectangle color' (toFloat (x, y)) (20, 20)
             fillRectangle color' (tx, ty) (w, h) =  color color' $ 
@@ -41,32 +45,41 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                 translate 500 300 $ 
                                 scale 0.25 0.25 $ 
                                 text (show point)]
+            recordPicture=     [color yellow $ 
+                                translate 500 250 $ 
+                                scale 0.25 0.25 $ 
+                                text (show record)]
             lifesPicture =     [color red $ 
                                 translate (-500) 300 $ 
                                 scale 0.25 0.25 $ 
                                 text (show life)]
                                                         
 update :: Float -> GameState -> IO GameState
-update _ gameState =  
+update _ gameState =  do
+                        writeFile "record.txt" (show record)
                         if gameOver
                             then return gameState
-                            else return (GameState newStarShip newPoints direction newGameOver newlifes)
+                            else return (GameState newStarShip newMonster newPoints direction newGameOver newlifes newRecord)
     where   
+            newMonster = getMonster gameState
             direction = NON
             gameOver = isGameOver gameState
-            GameState newStarShip  _ _ _ newlifes= move gameState
+            record = getRecord gameState
+            GameState newStarShip  _ _ _ _ newlifes _= move gameState
             newGameOver = checkGameOver gameState
             newPoints =1
-
+            newRecord
+                |record<newPoints=newPoints
+                |otherwise=record
                 
 handleKeys::Event->GameState->IO GameState
 handleKeys (EventKey (SpecialKey KeyLeft ) Down _ _) gameState = return (changeDirection gameState LEFT)
 handleKeys (EventKey (SpecialKey KeyRight) Down _ _) gameState = return (changeDirection gameState RIGHT)  
-handleKeys (EventKey (SpecialKey KeyEnter) Down _ _) gameState =    if isGameOver gameState then return (initialGameState False) else return gameState
+handleKeys (EventKey (SpecialKey KeyEnter) Down _ _) gameState =    if isGameOver gameState then return (initialGameState False record) else return gameState
+    where record=getRecord gameState
 handleKeys _ gameState = return gameState
 
 main :: IO ()
 main =do
-    
-    playIO window background 10 (initialGameState False) render handleKeys update
-
+    r<-fmap (read::String->Int) (readFile "record.txt") 
+    playIO window background 10 (initialGameState False r) render handleKeys update
