@@ -5,7 +5,7 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game
 
 window :: Display
-window = InWindow "Haskell StarShip Game" (1000, 600) (100, 100)
+window = InWindow "Haskell StarShip Game" (1100, 700) (100, 100)
 
 background :: Color
 background = black
@@ -15,12 +15,14 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                 ] ++
                                   fmap (convertToPicture white) starShip ++ 
                                   fmap (convertToPicture green) monster ++ 
+                                  fmap (convertToPicture yellow) shotM ++ 
                                   pointsPicture++
                                   lifesPicture++
                                   recordPicture++
                                   gameOverPicture)
     where   starShip = getStarShip gameState 
             monster = getMonster gameState
+            shotM = getShotM gameState
             point = getPoints gameState   
             life = getLifes gameState
             record=getRecord gameState 
@@ -59,13 +61,14 @@ update _ gameState =  do
                         writeFile "record.txt" (show record)
                         if gameOver
                             then return gameState
-                            else return (GameState newStarShip newMonster newPoints direction newGameOver newlifes newRecord)
+                            else return (GameState newStarShip newMonster newshotM newPoints direction newGameOver newlifes newRecord newRandom)
     where   
-            newMonster = getMonster gameState
+            (newMonster,newRandom) = moveMonster gameState
             direction = NON
+            newshotM = moveShotM gameState
             gameOver = isGameOver gameState
             record = getRecord gameState
-            GameState newStarShip  _ _ _ _ newlifes _= move gameState
+            GameState newStarShip  _ _ _ _ _ newlifes _ _= move gameState
             newGameOver = checkGameOver gameState
             newPoints =1
             newRecord
