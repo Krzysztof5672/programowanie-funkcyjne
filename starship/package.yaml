@@ -2,9 +2,9 @@ name:                starship
 version:             0.1.0.0
 github:              "githubuser/starship"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2021 Author name here"
+author:              "Krzysztof Boleń"
+maintainer:          "bolenk@student.mini.pw.edu.pl"
+copyright:           "2021 Krzysztof Boleń"
 
 extra-source-files:
 - README.md
@@ -21,7 +21,15 @@ description:         Please see the README on GitHub at <https://github.com/gith
 
 dependencies:
 - base >= 4.7 && < 5
+- containers
+- gloss
+- mtl
+- random
+- transformers
+- dunai
 
+ghc-options:
+- -Wall
 library:
   source-dirs: src
 
