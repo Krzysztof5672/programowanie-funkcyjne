@@ -9,6 +9,7 @@ data Direction = LEFT | RIGHT | NON deriving (Eq, Ord)
 type StarShip = [(Int, Int)]
 type Monster = [(Int, Int)]
 type ShotM = [(Int,Int)]
+type ShotP = [(Int,Int)]
 type St= StateT Direction IO
 
 cols::Int
@@ -23,6 +24,7 @@ directionVectorMap = Map.fromList $ zip [ LEFT, RIGHT, NON]
 data GameState = GameState      { getStarShip :: StarShip 
                                 , getMonster :: Monster                              
                                 , getShotM :: ShotM
+                                , getShotP :: ShotP
                                 , getPoints :: Int
                                 , getDirection :: Direction
                                 , isGameOver :: Bool
@@ -39,7 +41,7 @@ newMonster :: (Int,Int) -> Monster
 newMonster (a,b) = [(a,b),(a+1,b),(a-1,b),(a,b+1),(a,b-1)]
 
 moveMonster :: GameState -> (Monster,StdGen)
-moveMonster (GameState _ monster _ _ _ _ _ _ random) = (newMonster (newX ,y), newRandom)
+moveMonster (GameState _ monster _ _ _ _ _ _ _ random) = (newMonster (newX ,y), newRandom)
     where 
         (x,y) = head monster
         newX
@@ -48,11 +50,33 @@ moveMonster (GameState _ monster _ _ _ _ _ _ random) = (newMonster (newX ,y), ne
             | otherwise = x + r
         (r,newRandom) = randomR (-1,1) random
 
+shotP :: GameState -> GameState
+shotP (GameState starShip monster sm sp p dir over lifes record random) = GameState starShip monster sm newsp p dir over lifes record random
+    where
+        (x,y) = head starShip
+        newsp = [(x,y-1)]
+
+
+newShotP :: Int->Int->ShotP
+newShotP x y =[(x,y-1)]
+
+moveShotP :: GameState -> ShotP
+moveShotP (GameState _ _ _ shotP _ _ _ _ _ _) 
+    | shotP == [] = []
+    | otherwise = costam
+        where 
+            costam 
+                | y== 1 =[]
+                | otherwise = newShotP x y            
+            (x,y) = head shotP
+
+
+
 newShotM :: Int->Int -> ShotM
 newShotM x y = [(x,y+1)]
 
 moveShotM :: GameState -> ShotM
-moveShotM (GameState _ monster shotM _ _ _ _ _ _) = newShotM newX newY 
+moveShotM (GameState _ monster shotM _ _ _ _ _ _ _) = newShotM newX newY 
     where
         (x,y) = head shotM 
         (xM,yM) = head monster
@@ -63,26 +87,35 @@ moveShotM (GameState _ monster shotM _ _ _ _ _ _) = newShotM newX newY
             | y>=cols = xM
             | otherwise = x
 
+hitMonster :: GameState->Bool 
+hitMonster (GameState _ monster _ shotP _ _ _ _ _ _) = (xM == xSP && (ySP==yM || ySP == yM-1 || ySP==yM+1 ) ) ||
+                                                    (yM==ySP && (xSP==xM-1 || xSP==xM+1) ) 
+    where 
+        (xSP,ySP) = head shotP
+        (xM,yM) = head monster
+
+
 move :: GameState->GameState
-move (GameState starShip m sm p dir ov lifes re random) =  if wasHit (GameState starShip m sm p dir ov lifes re random)
-                then GameState starShip m sm p dir ov (lifes-1) re random
-                else GameState newstarShip m sm p dir ov lifes re random
+move (GameState starShip m sm sp p dir ov lifes re random) =  if wasHit (GameState starShip m sm sp p dir ov lifes re random)
+                then GameState starShip m sm sp p dir ov (lifes-1) re random
+                else GameState newstarShip m sm sp p dir ov lifes re random
     where   
         newstarShip = move' (directionVectorMap ! dir) starShip
         
 
 wasHit :: GameState -> Bool
-wasHit (GameState starShip _ shotM _ _ _ _ _ _) =  y==yS && (x==xS || x-1 == xS || x+1 == xS)
+wasHit (GameState starShip _ shotM _ _ _ _ _ _ _) =  y==yS && (x==xS || x-1 == xS || x+1 == xS)
     where 
         (x,y) = head starShip
         (xS,yS) = head shotM
 
 checkGameOver :: GameState -> Bool
-checkGameOver (GameState starShip monster shotM p dir over lifes record random) = 
-                      (wasHit (GameState starShip monster shotM p dir over lifes record random) && lifes<1)
+checkGameOver (GameState starShip monster shotM shotP p dir over lifes record random) =   
+                      (wasHit (GameState starShip monster shotM shotP p dir over lifes record random) && lifes<1)
+
 
 changeDirection :: GameState -> Direction -> GameState
-changeDirection (GameState s m sm p _  o l re ran) newDir = GameState s m sm p newDir o l re ran
+changeDirection (GameState s m sm sp p _  o l re ran) newDir = GameState s m sm sp p newDir o l re ran
 
 initialGameState :: Bool->Int -> GameState
 initialGameState gameOver record= GameState   { getStarShip = [  (starShipX, starShipY), 
@@ -95,6 +128,7 @@ initialGameState gameOver record= GameState   { getStarShip = [  (starShipX, sta
                                                         (monsterX+1,monsterY),
                                                         (monsterX-1,monsterY)]
                                         , getShotM =[(monsterX,monsterY+1)]
+                                        , getShotP = []
                                         , getPoints =0
                                         , getDirection = NON
                                         , isGameOver = gameOver
