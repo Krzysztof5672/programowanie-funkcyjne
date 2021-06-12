@@ -16,6 +16,7 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                   fmap (convertToPicture white) starShip ++ 
                                   fmap (convertToPicture green) monster ++ 
                                   fmap (convertToPicture yellow) shotM ++ 
+                                  fmap (convertToPicture blue) shotP ++ 
                                   pointsPicture++
                                   lifesPicture++
                                   recordPicture++
@@ -23,6 +24,7 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
     where   starShip = getStarShip gameState 
             monster = getMonster gameState
             shotM = getShotM gameState
+            shotP = getShotP gameState
             point = getPoints gameState   
             life = getLifes gameState
             record=getRecord gameState 
@@ -61,16 +63,25 @@ update _ gameState =  do
                         writeFile "record.txt" (show record)
                         if gameOver
                             then return gameState
-                            else return (GameState newStarShip newMonster newshotM newPoints direction newGameOver newlifes newRecord newRandom)
-    where   
+                            else return (GameState newStarShip newMonster newshotM newShotP newPoints direction newGameOver newlifes newRecord newRandom)
+    where  
+            points = getPoints gameState 
             (newMonster,newRandom) = moveMonster gameState
             direction = NON
+            shotP = getShotP gameState 
+            newShotP = moveShotP gameState
             newshotM = moveShotM gameState
             gameOver = isGameOver gameState
             record = getRecord gameState
-            GameState newStarShip  _ _ _ _ _ newlifes _ _= move gameState
+            GameState newStarShip  _ _ _ _ _ _ newlifes _ _= move gameState
             newGameOver = checkGameOver gameState
-            newPoints =1
+            hit
+              |shotP==[] = False
+              |otherwise = hitMonster gameState
+             
+            newPoints  
+                | hit = (points+1)
+                | otherwise = points
             newRecord
                 |record<newPoints=newPoints
                 |otherwise=record
@@ -78,6 +89,8 @@ update _ gameState =  do
 handleKeys::Event->GameState->IO GameState
 handleKeys (EventKey (SpecialKey KeyLeft ) Down _ _) gameState = return (changeDirection gameState LEFT)
 handleKeys (EventKey (SpecialKey KeyRight) Down _ _) gameState = return (changeDirection gameState RIGHT)  
+handleKeys (EventKey (SpecialKey KeyUp) Down _ _) gameState = return (shotP gameState ) 
+
 handleKeys (EventKey (SpecialKey KeyEnter) Down _ _) gameState =    if isGameOver gameState then return (initialGameState False record) else return gameState
     where record=getRecord gameState
 handleKeys _ gameState = return gameState
