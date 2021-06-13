@@ -14,7 +14,8 @@ render :: GameState -> IO Picture
 render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                 ] ++
                                   fmap (convertToPicture white) starShip ++ 
-                                  fmap (convertToPicture green) monster ++ 
+                                  
+                                  fmap (convertToPicture green) monster ++
                                   fmap (convertToPicture yellow) shotM ++ 
                                   fmap (convertToPicture blue) shotP ++ 
                                   pointsPicture++
@@ -35,8 +36,19 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                                     translate (tx * 20 - 500) (ty * 20 - 300) $ 
                                                     rectangleSolid w h
             toFloat (x, y) = (fromIntegral x, fromIntegral y)
-            gameOverPicture =   if isGameOver gameState 
-                                then [  color red $ 
+            gameOverPicture  
+                  | null monster = 
+                                 [  color red $ 
+                                        translate (-200) 0 $ 
+                                        scale 0.5 0.5 $ 
+                                        text "YOU WIN"
+                                     ,  color blue $ 
+                                        translate (-175) (-50) $ 
+                                        scale 0.2 0.2 $ 
+                                        text "Press ENTER to try again." ] 
+                                
+                  | isGameOver gameState =
+                                 [  color red $ 
                                         translate (-200) 0 $ 
                                         scale 0.5 0.5 $ 
                                         text "GAME OVER"
@@ -44,7 +56,7 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                         translate (-175) (-50) $ 
                                         scale 0.2 0.2 $ 
                                         text "Press ENTER to try again." ] 
-                                else []
+                  | otherwise = []            
             pointsPicture=     [color yellow $ 
                                 translate 500 300 $ 
                                 scale 0.25 0.25 $ 
@@ -60,11 +72,13 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                                         
 update :: Float -> GameState -> IO GameState
 update _ gameState =  do
-                        writeFile "record.txt" (show record)
-                        if gameOver
+                        writeFile "record.txt" (show record)                           
+                        if gameOver || monster ==[]
                             then return gameState
                             else return (GameState newStarShip newMonster newshotM newShotP newPoints direction newGameOver newlifes newRecord newRandom)
+
     where  
+            monster = getMonster gameState
             points = getPoints gameState 
             (newMonster,newRandom) = moveMonster gameState
             direction = NON
@@ -76,11 +90,11 @@ update _ gameState =  do
             GameState newStarShip  _ _ _ _ _ _ newlifes _ _= move gameState
             newGameOver = checkGameOver gameState
             hit
-              |shotP==[] = False
+              |null shotP = False
               |otherwise = hitMonster gameState
              
             newPoints  
-                | hit = (points+1)
+                | hit = points+1
                 | otherwise = points
             newRecord
                 |record<newPoints=newPoints
@@ -91,8 +105,12 @@ handleKeys (EventKey (SpecialKey KeyLeft ) Down _ _) gameState = return (changeD
 handleKeys (EventKey (SpecialKey KeyRight) Down _ _) gameState = return (changeDirection gameState RIGHT)  
 handleKeys (EventKey (SpecialKey KeyUp) Down _ _) gameState = return (shotP gameState ) 
 
-handleKeys (EventKey (SpecialKey KeyEnter) Down _ _) gameState =    if isGameOver gameState then return (initialGameState False record) else return gameState
-    where record=getRecord gameState
+handleKeys (EventKey (SpecialKey KeyEnter) Down _ _) gameState =    if isGameOver gameState || monster == [] 
+    then return (initialGameState False record) else return gameState
+    
+    where 
+        record=getRecord gameState
+        monster = getMonster gameState
 handleKeys _ gameState = return gameState
 
 main :: IO ()
