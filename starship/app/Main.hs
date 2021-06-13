@@ -14,8 +14,7 @@ render :: GameState -> IO Picture
 render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                 ] ++
                                   fmap (convertToPicture white) starShip ++ 
-                                  
-                                  fmap (convertToPicture green) monster ++
+                                  fmap (convertToPicture green) m ++
                                   fmap (convertToPicture yellow) shotM ++ 
                                   fmap (convertToPicture blue) shotP ++ 
                                   pointsPicture++
@@ -24,6 +23,7 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                   gameOverPicture)
     where   starShip = getStarShip gameState 
             monster = getMonster gameState
+            m = concat monster
             shotM = getShotM gameState
             shotP = getShotP gameState
             point = getPoints gameState   
@@ -117,3 +117,4 @@ main :: IO ()
 main =do
     r<-fmap (read::String->Int) (readFile "record.txt") 
     playIO window background 10 (initialGameState False r) render handleKeys update
+
