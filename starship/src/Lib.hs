@@ -1,7 +1,7 @@
 module Lib where
 
 
-import Data.Map as Map
+import Data.Map as Map hiding (map)
 import System.Random
 import Control.Monad.State.Strict
 
@@ -17,8 +17,8 @@ type St= StateT Direction IO
 
 cols::Int
 rows::Int
-cols = 50
-rows = 33
+cols = 70
+rows = 35
 
 directionVectorMap :: Map Direction (Int, Int)
 directionVectorMap = Map.fromList $ zip [ LEFT, RIGHT, NON] 
@@ -43,6 +43,29 @@ move' (a,b) ((c,d):xs) =(a+c,b+d): move' (a,b) xs
 startMonster :: (Int,Int) -> Monster
 startMonster (a,b) = [(a,b),(a+1,b),(a-1,b),(a,b+1),(a,b-1)]
 
+{-
+monstersX :: MultiMonster -> [Int]
+monstersX []=[]
+monstersX (m:ms) = fst ( head m): monstersX ms
+-}
+monstersX :: MultiMonster -> [Int]
+monstersX  = map (fst . head ) 
+
+monstersY :: MultiMonster -> [Int]
+monstersY  = map (snd . head ) 
+
+minMonsterX :: MultiMonster -> Int
+minMonsterX monster =  minimum (monstersX monster)
+
+minMonsterY :: MultiMonster -> Int
+minMonsterY monster =  minimum (monstersY monster)
+
+maxMonsterX :: MultiMonster -> Int
+maxMonsterX monster = maximum (monstersX monster)
+
+maxMonsterY :: MultiMonster -> Int
+maxMonsterY monster = maximum (monstersY monster)
+
 newMonster :: Int -> MultiMonster -> MultiShotP -> MultiMonster
 newMonster _ [] _ = []
 newMonster a (m:ms) shotP 
@@ -51,15 +74,34 @@ newMonster a (m:ms) shotP
     where
         (x,y) = head m
 
+newMonster' :: Int -> MultiMonster -> MultiShotP -> MultiMonster
+newMonster' _ [] _ = []
+newMonster' a (m:ms) shotP 
+    |hitMonsterPom [m] shotP = newMonster' a ms shotP
+    |otherwise =  [(x,y+a),(x+1,y+a),(x-1,y+a),(x,y+1+a),(x,y-1+a)] : newMonster' a ms shotP
+    where
+        (x,y) = head m
+
 moveMonster :: GameState -> (MultiMonster,StdGen)
-moveMonster (GameState _ monster _ shotP _ _ _ _ _ random) = (newMonster r monster shotP, newRandom)
+moveMonster (GameState _ monster _ shotP _ _ _ _ _ random) 
+    |even los = (newMonster rNew1 monster shotP, newRandom)
+    |otherwise = (newMonster' rNew2 monster shotP, newRandom)
     where 
-     {-   (x,y) = head monster
-        newX
-            | x==1 = 2
-            | x==32 = 31
-            | otherwise = x + r
-       -} (r,newRandom) = randomR (-1,1) random
+        (r,newRandom) = randomR (-1,1) random
+        los = fst (next random ) 
+        x1 = minMonsterX monster
+        x2 = maxMonsterX monster
+        y1 = minMonsterY monster
+        y2 = maxMonsterY monster
+        rNew1
+            | x1 == 1 = 1
+            | x2 == (rows -1) = -1
+            | otherwise = r
+        rNew2
+            | y1 <= 3= 1
+            | y2 >= 16 = -1
+            | otherwise = r    
+       
 
 shotP :: GameState -> GameState
 shotP (GameState starShip monster sm sp p dir over lifes record random) = GameState starShip monster sm newsp p dir over lifes record random
@@ -127,12 +169,16 @@ hitMonster (GameState _ monster _ shotP _ _ _ _ _ _) = hitMonsterPom monster sho
 -}
 
 move :: GameState->GameState
-move (GameState starShip m sm sp p dir ov lifes re random) =  if wasHitPlayer (GameState starShip m sm sp p dir ov lifes re random)
-                then GameState starShip m sm sp p dir ov (lifes-1) re random
-                else GameState newstarShip m sm sp p dir ov lifes re random
-    where   
-        newstarShip = move' (directionVectorMap ! dir) starShip
-        
+move (GameState starShip m sm sp p dir ov lifes re random) 
+    |   wasHitPlayer (GameState starShip m sm sp p dir ov lifes re random) = GameState starShip m sm sp p dir ov (lifes-1) re random
+    |   x == 2 && dir == LEFT = GameState starShip m sm sp p dir ov lifes re random
+    |   x== cols-2 && dir==RIGHT = GameState starShip m sm sp p dir ov lifes re random
+    |   otherwise = GameState newstarShip m sm sp p dir ov lifes re random
+ 
+        where   
+            (x,_) = head starShip
+            newstarShip = move' (directionVectorMap ! dir) starShip
+            
 
 wasHitPlayer :: GameState -> Bool
 wasHitPlayer (GameState starShip _ [] _ _ _ _ _ _ _) = False
@@ -143,29 +189,37 @@ wasHitPlayer (GameState starShip m ((xS,yS):sx) sp  p dir ov lifes re random) = 
         
 
 checkGameOver :: GameState -> Bool
-checkGameOver (GameState starShip monster shotM shotP p dir over lifes record random) = 
-                      (wasHitPlayer (GameState starShip monster shotM shotP p dir over lifes record random) && lifes<1)
+checkGameOver (GameState starShip monster shotM shotP p dir over lifes record random) = wasHitPlayer (GameState starShip monster shotM shotP p dir over lifes record random) && lifes<1
+
 
 changeDirection :: GameState -> Direction -> GameState
 changeDirection (GameState s m sm sp p _  o l re ran) newDir = GameState s m sm sp p newDir o l re ran
+
+
+
+
+
 
 initialGameState :: Bool->Int -> GameState
 initialGameState gameOver record= GameState   { getStarShip = [  (starShipX, starShipY), 
                                                         (starShipX, starShipY - 1),
                                                         (starShipX - 1, starShipY ), 
                                                         (starShipX + 1, starShipY)]
-                                        , getMonster = [startMonster (monsterX,monsterY),startMonster (monsterX+5,monsterY),startMonster (monsterX-5,monsterY),
-                                                        startMonster (monsterX,monsterY+4),startMonster (monsterX+5,monsterY+4),startMonster (monsterX-5,monsterY+4),
-                                                        startMonster (monsterX+10,monsterY+2),startMonster (monsterX-10,monsterY+2),startMonster (monsterX-15,monsterY+2)]
+                                        , getMonster = [startMonster (monsterX,monsterY),startMonster (monsterX+5,monsterY),startMonster (monsterX-5,monsterY), startMonster (monsterX-10,monsterY),
+                                                        startMonster (monsterX+2,monsterY+4),startMonster (monsterX+7,monsterY+4),startMonster (monsterX-3,monsterY+4),startMonster (monsterX-8,monsterY+4),
+                                                        startMonster (monsterX+2,monsterY-4),startMonster (monsterX+7,monsterY-4),startMonster (monsterX-3,monsterY-4),startMonster (monsterX-8,monsterY-4),
+                                                        startMonster (monsterX,monsterY+8),startMonster (monsterX+5,monsterY+8),startMonster (monsterX-5,monsterY+8), startMonster (monsterX-10,monsterY+8)
+                                                        ]
+                                        
                                         , getShotM =[(monsterX,monsterY+1)]
                                         , getShotP = []
                                         , getPoints =0
                                         , getDirection = NON
                                         , isGameOver = gameOver
-                                        , getLifes=3
+                                        , getLifes=2
                                         , getRecord=record
                                         , getRandom = mkStdGen 100 }  
-        where   starShipX = cols `div` 2
+        where   starShipX = 4
                 starShipY = 28
                 monsterX = cols `div` 2
                 monsterY = 6
