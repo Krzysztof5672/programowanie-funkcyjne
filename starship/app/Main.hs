@@ -73,7 +73,7 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
 update :: Float -> GameState -> IO GameState
 update _ gameState =  do
                         writeFile "record.txt" (show record)                           
-                        if gameOver || monster ==[]
+                        if gameOver || null monster 
                             then return gameState
                             else return (GameState newStarShip newMonster newshotM newShotP newPoints direction newGameOver newlifes newRecord newRandom)
 
@@ -81,20 +81,16 @@ update _ gameState =  do
             monster = getMonster gameState
             points = getPoints gameState 
             (newMonster,newRandom) = moveMonster gameState
-            direction = NON
-            shotP = getShotP gameState 
+            direction = NON 
             newShotP = moveShotP gameState
             newshotM = moveShotM gameState
             gameOver = isGameOver gameState
             record = getRecord gameState
             GameState newStarShip  _ _ _ _ _ _ newlifes _ _= move gameState
             newGameOver = checkGameOver gameState
-            hit
-              |null shotP = False
-              |otherwise = hitMonster gameState
-             
+
             newPoints  
-                | hit = points+10
+                | hitMonster gameState = points+10
                 | otherwise = points
             newRecord
                 |record<newPoints=newPoints
