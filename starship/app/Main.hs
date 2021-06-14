@@ -94,7 +94,7 @@ update _ gameState =  do
               |otherwise = hitMonster gameState
              
             newPoints  
-                | hit = points+1
+                | hit = points+10
                 | otherwise = points
             newRecord
                 |record<newPoints=newPoints
@@ -117,4 +117,3 @@ main :: IO ()
 main =do
     r<-fmap (read::String->Int) (readFile "record.txt") 
     playIO window background 10 (initialGameState False r) render handleKeys update
-
