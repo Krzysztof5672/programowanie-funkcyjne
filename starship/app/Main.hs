@@ -82,7 +82,7 @@ update _ gameState =  do
             points = getPoints gameState 
             (newMonster,newRandom) = moveMonster gameState
             direction = NON 
-            newShotP = moveShotP gameState
+            newShotP = take 3 (moveShotP gameState)
             newshotM = moveShotM gameState
             gameOver = isGameOver gameState
             record = getRecord gameState
@@ -112,4 +112,4 @@ handleKeys _ gameState = return gameState
 main :: IO ()
 main =do
     r<-fmap (read::String->Int) (readFile "record.txt") 
-    playIO window background 10 (initialGameState False r) render handleKeys update
+    playIO window background 15 (initialGameState False r) render handleKeys update
