@@ -5,7 +5,7 @@ import Data.Map as Map hiding (map)
 import System.Random
 import Control.Monad.State.Strict
 
-data Direction = LEFT | RIGHT | NON deriving (Eq, Ord)
+data Direction = LEFT | RIGHT | NON deriving (Eq, Ord,Show)
 type StarShip = [(Int, Int)]
 type Monster = [(Int, Int)]
 type ShotM = (Int,Int)
@@ -34,7 +34,7 @@ data GameState = GameState      { getStarShip :: StarShip
                                 , getLifes:: Int
                                 , getRecord::Int 
                                 , getRandom :: StdGen
-                                }
+                                } deriving Show
 
 move':: (Int,Int)->StarShip->StarShip
 move' (_,_) []=[]
@@ -95,7 +95,7 @@ moveMonster (GameState _ monster _ shotP _ _ _ _ _ random)
         y2 = maxMonsterY monster
         rNew1
             | x1 == 1 = 1
-            | x2 == (rows -1) = -1
+            | x2 == (cols -1) = -1
             | otherwise = r
         rNew2
             | y1 <= 3= 1
@@ -104,10 +104,11 @@ moveMonster (GameState _ monster _ shotP _ _ _ _ _ random)
        
 
 shotP :: GameState -> GameState
-shotP (GameState starShip monster sm sp p dir over lifes record random) = GameState starShip monster sm newsp p dir over lifes record random
+shotP (GameState starShip monster sm sp p dir over lifes record random) = GameState starShip monster sm newsp (p-2) dir over lifes record random
     where
         (x,y) = head starShip
         newsp = (x,y-1):sp
+
 
 
 newShotP :: Int->Int->ShotP
@@ -189,7 +190,7 @@ wasHitPlayer (GameState starShip m ((xS,yS):sx) sp  p dir ov lifes re random) = 
         
 
 checkGameOver :: GameState -> Bool
-checkGameOver (GameState starShip monster shotM shotP p dir over lifes record random) = wasHitPlayer (GameState starShip monster shotM shotP p dir over lifes record random) && lifes<1
+checkGameOver (GameState starShip monster shotM shotP p dir over lifes record random) = wasHitPlayer (GameState starShip monster shotM shotP p dir over lifes record random) && lifes<=1
 
 
 changeDirection :: GameState -> Direction -> GameState
@@ -226,3 +227,4 @@ initialGameState gameOver record= GameState   { getStarShip = [  (starShipX, sta
 
 readInts :: String -> Int
 readInts  = read 
+
