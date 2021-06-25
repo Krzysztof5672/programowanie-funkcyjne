@@ -43,11 +43,7 @@ move' (a,b) ((c,d):xs) =(a+c,b+d): move' (a,b) xs
 startMonster :: (Int,Int) -> Monster
 startMonster (a,b) = [(a,b),(a+1,b),(a-1,b),(a,b+1),(a,b-1)]
 
-{-
-monstersX :: MultiMonster -> [Int]
-monstersX []=[]
-monstersX (m:ms) = fst ( head m): monstersX ms
--}
+
 monstersX :: MultiMonster -> [Int]
 monstersX  = map (fst . head ) 
 
@@ -73,12 +69,12 @@ newMonsterX a (m:ms) shotP
     |otherwise =   map (\(x,y)->(x+a,y)) m: newMonsterX a ms shotP
     where
         (x,y) = head m
-    -- [(x+a,y),(x+1+a,y),(x-1+a,y),(x+a,y+1),(x+a,y-1)]
+
 newMonsterY :: Int -> MultiMonster -> MultiShotP -> MultiMonster
 newMonsterY _ [] _ = []
 newMonsterY a (m:ms) shotP 
     |hitMonsterPom [m] shotP = newMonsterY a ms shotP
-    |otherwise =   map (\(x,y)->(x,y+a)) m: newMonsterX a ms shotP
+    |otherwise =   map (\(x,y)->(x,y+a)) m: newMonsterY a ms shotP
     where
         (x,y) = head m
 
