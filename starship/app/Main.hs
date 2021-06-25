@@ -16,7 +16,7 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
                                   fmap (convertToPicture white) starShip ++ 
                                   fmap (convertToPicture green) m ++
                                   fmap (convertToPicture yellow) shotM ++ 
-                                  fmap (convertToPicture blue) shotP ++ 
+                                  fmap (convertToPicture blue) shotP1 ++ 
                                   pointsPicture++
                                   lifesPicture++
                                   recordPicture++
@@ -25,7 +25,7 @@ render gameState =return (pictures $   [ fillRectangle black (16, 0) (0,0)
             monster = getMonster gameState
             m = concat monster
             shotM = getShotM gameState
-            shotP = getShotP gameState
+            shotP1 = getShotP gameState
             point = getPoints gameState   
             life = getLifes gameState
             record=getRecord gameState 
@@ -75,14 +75,14 @@ update _ gameState =  do
                         writeFile "record.txt" (show record)                           
                         if gameOver || null monster 
                             then return gameState
-                            else return (GameState newStarShip newMonster newshotM newShotP newPoints direction newGameOver newlifes newRecord newRandom)
+                            else return (GameState newStarShip newMonster newshotM newShotP1 newPoints direction newGameOver newlifes newRecord newRandom)
 
     where  
             monster = getMonster gameState
             points = getPoints gameState 
             (newMonster,newRandom) = moveMonster gameState
             direction = NON 
-            newShotP = take 3 (moveShotP gameState)
+            newShotP1 = take 3 (moveShotP gameState)
             newshotM = moveShotM gameState
             gameOver = isGameOver gameState
             record = getRecord gameState
@@ -101,7 +101,7 @@ handleKeys (EventKey (SpecialKey KeyLeft ) Down _ _) gameState = return (changeD
 handleKeys (EventKey (SpecialKey KeyRight) Down _ _) gameState = return (changeDirection gameState RIGHT)  
 handleKeys (EventKey (SpecialKey KeyUp) Down _ _) gameState = return (shotP gameState ) 
 
-handleKeys (EventKey (SpecialKey KeyEnter) Down _ _) gameState =    if isGameOver gameState || monster == [] 
+handleKeys (EventKey (SpecialKey KeyEnter) Down _ _) gameState =    if isGameOver gameState || null monster 
     then return (initialGameState False record) else return gameState
     
     where 
