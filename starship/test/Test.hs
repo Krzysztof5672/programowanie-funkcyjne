@@ -1,8 +1,7 @@
-module Proba where
+module Test where
 
 import Test.QuickCheck
---import Test.QuickCheck.All
---import Test.QuickCheck.Modifiers
+
 import Lib
 import System.Random
 import Data.Map
@@ -24,14 +23,14 @@ instance Arbitrary GameState where
         record <- chooseInt ( 6,10)
         lifes <- chooseInt (1,3)
         gameOver <- elements [True,False]
-        random <-chooseInt (1,100)
-        return (GameState (starShip starShipX) (monster monster_X monster_Y) (shotM shotM_X shotM_Y monster_X monster_Y) (shotP shotP_X shotP_Y starShipX)
-                                                 points direction gameOver lifes record  (mkStdGen random) )
+        random1 <-chooseInt (1,100)
+        return (GameState (starShip starShipX) (monster monster_X monster_Y) (shotM shotM_X shotM_Y monster_X monster_Y) (shotP1 shotP_X shotP_Y starShipX)
+                                                 points direction gameOver lifes record  (mkStdGen random1) )
         where
             starShip starShipX = [(starShipX,28), (starShipX,27), (starShipX - 1,28), (starShipX + 1,28)]
             monster monster_X monster_Y = [startMonster(monster_X,monster_Y), startMonster(monster_X+5,monster_Y), startMonster(monster_X-5,monster_Y)]
             shotM shotM_X shotM_Y monster_X monster_Y = [newShotM monster_X monster_Y, newShotM shotM_X shotM_Y]
-            shotP shotP_X shotP_Y starShipX = [(shotP_X,shotP_Y),newShotP starShipX 27]
+            shotP1 shotP_X shotP_Y starShipX = [(shotP_X,shotP_Y),newShotP starShipX 27]
 
 prop_directionVectorMap :: Direction -> Bool
 prop_directionVectorMap LEFT = directionVectorMap ! LEFT == (-1 ,0)
@@ -72,9 +71,7 @@ prop_wasHitPlayer gameState =
     wasHitPlayer gameState == checkHit (getShotM gameState)
     where 
         checkHit :: MultiShotM -> Bool
-        checkHit [] = False
-        checkHit ((xs,ys):shot) = y==ys && (x==xs || x-1 == xs || x+1 == xs) || checkHit shot
-        
+        checkHit shot = elem (x,y) shot ||  elem (x+1,y) shot ||  elem (x-1,y) shot
         (x,y) = head (getStarShip gameState)
  
 
@@ -83,18 +80,16 @@ prop_gameOver gameState =
     checkGameOver gameState == (checkHit (getShotM gameState) && getLifes gameState <= 1) || isGameOver gameState 
     where 
         checkHit :: MultiShotM -> Bool
-        checkHit [] = False
-        checkHit ((xs,ys):shot) = y==ys && (x==xs || x-1 == xs || x+1 == xs) || checkHit shot
+        checkHit shot = elem (x,y) shot ||  elem (x+1,y) shot ||  elem (x-1,y) shot
         (x,y) = head (getStarShip gameState)
 
 prop_move :: GameState -> Bool
-prop_move (GameState starShip monsters shotM shotP points dir over lifes record random) = 
-    getStarShip ( move (GameState starShip monsters shotM shotP points dir over lifes record random) ) == moveTest &&
-     getLifes ( move (GameState starShip monsters shotM shotP points dir over lifes record random) ) == lifeTest
+prop_move (GameState starShip monsters shotM shotP1 points dir over lifes record random1) = 
+    getStarShip ( move (GameState starShip monsters shotM shotP1 points dir over lifes record random1) ) == moveTest &&
+     getLifes ( move (GameState starShip monsters shotM shotP1 points dir over lifes record random1) ) == lifeTest
      where 
         checkHit :: MultiShotM -> Bool
-        checkHit [] = False
-        checkHit ((xs,ys):shot) = y==ys && (x==xs || x-1 == xs || x+1 == xs) || checkHit shot
+        checkHit shot = elem (x,y) shot ||  elem (x+1,y) shot ||  elem (x-1,y) shot
         (x,y) = head starShip
         moveTest 
             | checkHit shotM = starShip
@@ -111,12 +106,10 @@ prop_hitMonster :: GameState -> Bool
 prop_hitMonster gameState = 
     hitMonster gameState == hitTest (getMonster gameState) (getShotP gameState)
     where 
-        monster = getMonster gameState
-        shotP = getShotP gameState
         hitTest :: MultiMonster -> MultiShotP -> Bool
         hitTest [] _ = False
         hitTest _ [] = False
-        hitTest (m:ms) ((x,y):xs) = (xM == x && (y==yM || y== yM-1 || y==yM+1)) || (yM==y && (x==xM-1 || x==xM+1)) || hitTest [m] xs || hitTest ms ((x,y):xs) 
+        hitTest (m:ms) shot = elem (xM,yM) shot || elem (xM+1,yM) shot || elem (xM-1,yM) shot || elem (xM,yM-1) shot || elem (xM,yM+1) shot || hitTest ms shot
             where 
                 (xM,yM) = head m
 
@@ -134,9 +127,10 @@ prop_newMonster gamestate =
         hitTest :: MultiMonster -> MultiShotP -> Bool
         hitTest [] _ = False
         hitTest _ [] = False
-        hitTest (m:ms) ((x,y):xs) = (xM == x && (y==yM || y== yM-1 || y==yM+1)) || (yM==y && (x==xM-1 || x==xM+1)) || hitTest [m] xs || hitTest ms ((x,y):xs) 
+        hitTest (m:ms) shot = elem (xM,yM) shot || elem (xM+1,yM) shot || elem (xM-1,yM) shot || elem (xM,yM-1) shot || elem (xM,yM+1) shot || hitTest ms shot
             where 
-                (xM,yM) = head m    
+                (xM,yM) = head m   
+
 test :: IO ()
 test =  quickCheck prop_directionVectorMap >> quickCheck prop_move' >> quickCheck prop_startMonster >> quickCheck prop_newShotM >> quickCheck prop_newShotP 
         >> quickCheck prop_changeDirection >> quickCheck prop_shotP >> quickCheck prop_wasHitPlayer >> quickCheck prop_gameOver >> quickCheck prop_move
