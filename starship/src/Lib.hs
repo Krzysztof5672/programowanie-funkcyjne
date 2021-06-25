@@ -66,26 +66,26 @@ maxMonsterX monster = maximum (monstersX monster)
 maxMonsterY :: MultiMonster -> Int
 maxMonsterY monster = maximum (monstersY monster)
 
-newMonster :: Int -> MultiMonster -> MultiShotP -> MultiMonster
-newMonster _ [] _ = []
-newMonster a (m:ms) shotP 
-    |hitMonsterPom [m] shotP = newMonster a ms shotP
-    |otherwise =  [(x+a,y),(x+1+a,y),(x-1+a,y),(x+a,y+1),(x+a,y-1)] : newMonster a ms shotP
+newMonsterX :: Int -> MultiMonster -> MultiShotP -> MultiMonster
+newMonsterX _ [] _ = []
+newMonsterX a (m:ms) shotP 
+    |hitMonsterPom [m] shotP = newMonsterX a ms shotP
+    |otherwise =   map (\(x,y)->(x+a,y)) m: newMonsterX a ms shotP
     where
         (x,y) = head m
-
-newMonster' :: Int -> MultiMonster -> MultiShotP -> MultiMonster
-newMonster' _ [] _ = []
-newMonster' a (m:ms) shotP 
-    |hitMonsterPom [m] shotP = newMonster' a ms shotP
-    |otherwise =  [(x,y+a),(x+1,y+a),(x-1,y+a),(x,y+1+a),(x,y-1+a)] : newMonster' a ms shotP
+    -- [(x+a,y),(x+1+a,y),(x-1+a,y),(x+a,y+1),(x+a,y-1)]
+newMonsterY :: Int -> MultiMonster -> MultiShotP -> MultiMonster
+newMonsterY _ [] _ = []
+newMonsterY a (m:ms) shotP 
+    |hitMonsterPom [m] shotP = newMonsterY a ms shotP
+    |otherwise =   map (\(x,y)->(x,y+a)) m: newMonsterX a ms shotP
     where
         (x,y) = head m
 
 moveMonster :: GameState -> (MultiMonster,StdGen)
 moveMonster (GameState _ monster _ shotP _ _ _ _ _ random) 
-    |even los = (newMonster rNew1 monster shotP, newRandom)
-    |otherwise = (newMonster' rNew2 monster shotP, newRandom)
+    |even los = (newMonsterX rNew1 monster shotP, newRandom)
+    |otherwise = (newMonsterY rNew2 monster shotP, newRandom)
     where 
         (r,newRandom) = randomR (-1,1) random
         los = fst (next random ) 
@@ -124,14 +124,7 @@ funPom ((x,y):sp) m
 
 moveShotP :: GameState -> MultiShotP
 moveShotP (GameState _ monster _ shotP _ _ _ _ _ _) = funPom shotP monster
-{-    | shotP == [] = []
-    | otherwise = costam
-        where 
-            costam 
-                | y== 1 =[]
-                | otherwise = newShotP x y            
-            (x,y) = head shotP
--}
+
 
 newShotM :: Int->Int -> ShotM
 newShotM x y = (x,y+1)
@@ -162,12 +155,6 @@ hitMonsterPom (m:ms) ((xSP,ySP) : xs) = (xM == xSP && (ySP==yM || ySP == yM-1 ||
 
 hitMonster :: GameState->Bool 
 hitMonster (GameState _ monster _ shotP _ _ _ _ _ _) = hitMonsterPom monster shotP
-   {- (xM == xSP && (ySP==yM || ySP == yM-1 || ySP==yM+1 ) ) ||
-                                                    (yM==ySP && (xSP==xM-1 || xSP==xM+1) ) 
-    where 
-        (xSP,ySP) = head shotP
-        (xM,yM) = head monster
--}
 
 move :: GameState->GameState
 move (GameState starShip m sm sp p dir ov lifes re random) 
@@ -227,4 +214,3 @@ initialGameState gameOver record= GameState   { getStarShip = [  (starShipX, sta
 
 readInts :: String -> Int
 readInts  = read 
-
