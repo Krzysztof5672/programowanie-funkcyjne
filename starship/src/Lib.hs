@@ -180,9 +180,6 @@ changeDirection (GameState s m sm sp p _  o l re ran start) newDir = GameState s
 
 
 
-
-
-
 initialGameState :: Bool->Bool->Int -> GameState
 initialGameState startGame gameOver record= GameState   { getStarShip = [  (starShipX, starShipY), 
                                                         (starShipX, starShipY - 1),
@@ -208,5 +205,3 @@ initialGameState startGame gameOver record= GameState   { getStarShip = [  (star
                 monsterX = cols `div` 2
                 monsterY = 6
 
-readInts :: String -> Int
-readInts  = read 
