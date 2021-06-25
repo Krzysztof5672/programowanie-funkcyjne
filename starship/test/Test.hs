@@ -1,7 +1,9 @@
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Test where
 
 import Test.QuickCheck
-
+--import Test.QuickCheck.All
+--import Test.QuickCheck.Modifiers
 import Lib
 import System.Random
 import Data.Map
@@ -25,12 +27,13 @@ instance Arbitrary GameState where
         gameOver <- elements [True,False]
         random1 <-chooseInt (1,100)
         return (GameState (starShip starShipX) (monster monster_X monster_Y) (shotM shotM_X shotM_Y monster_X monster_Y) (shotP1 shotP_X shotP_Y starShipX)
-                                                 points direction gameOver lifes record  (mkStdGen random1) )
+                                                 points direction gameOver lifes record  (mkStdGen random1) start)
         where
             starShip starShipX = [(starShipX,28), (starShipX,27), (starShipX - 1,28), (starShipX + 1,28)]
             monster monster_X monster_Y = [startMonster(monster_X,monster_Y), startMonster(monster_X+5,monster_Y), startMonster(monster_X-5,monster_Y)]
             shotM shotM_X shotM_Y monster_X monster_Y = [newShotM monster_X monster_Y, newShotM shotM_X shotM_Y]
             shotP1 shotP_X shotP_Y starShipX = [(shotP_X,shotP_Y),newShotP starShipX 27]
+            start = True
 
 prop_directionVectorMap :: Direction -> Bool
 prop_directionVectorMap LEFT = directionVectorMap ! LEFT == (-1 ,0)
@@ -59,7 +62,7 @@ prop_changeDirection gameState direction =
 
 prop_shotP :: GameState -> Bool
 prop_shotP gameState =
-    getShotP (shotP gameState) == (x,y-1):xs && getPoints (shotP gameState) == p-2
+    getShotP (shotP gameState) == (x,y-1):xs && ( (not (isGameOver gameState) && getPoints (shotP gameState) == p-2 ) || (isGameOver gameState &&  getPoints (shotP gameState) == p) )
     where
       xs = getShotP gameState
       p = getPoints gameState
@@ -84,9 +87,9 @@ prop_gameOver gameState =
         (x,y) = head (getStarShip gameState)
 
 prop_move :: GameState -> Bool
-prop_move (GameState starShip monsters shotM shotP1 points dir over lifes record random1) = 
-    getStarShip ( move (GameState starShip monsters shotM shotP1 points dir over lifes record random1) ) == moveTest &&
-     getLifes ( move (GameState starShip monsters shotM shotP1 points dir over lifes record random1) ) == lifeTest
+prop_move (GameState starShip monsters shotM shotP1 points dir over lifes record random1 start) = 
+    getStarShip ( move (GameState starShip monsters shotM shotP1 points dir over lifes record random1 start) ) == moveTest &&
+     getLifes ( move (GameState starShip monsters shotM shotP1 points dir over lifes record random1 start) ) == lifeTest
      where 
         checkHit :: MultiShotM -> Bool
         checkHit shot = elem (x,y) shot ||  elem (x+1,y) shot ||  elem (x-1,y) shot
